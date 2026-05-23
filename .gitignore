@@ -1,0 +1,12 @@
+.claude
+.venv
+*.ipynb_checkpoints
+__pycache__/
+*.ipynb
+*.pyc
+*.pkl
+.codex
+*.log
+agents.md
+.conda
+index.html

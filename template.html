@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>데이터 기반 종목 분석</title>
+<!-- {{BUILT_AT_META}} -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<!-- {{PWA_HEAD}} -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("theme");
+      var theme = (saved === "dark" || saved === "light")
+        ? saved
+        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      if (theme === "dark") document.documentElement.classList.add("dark");
+    } catch (e) {}
+  })();
+</script>
+<!-- {{PWA_SW_SOURCE}} -->
+<!-- {{PWA_BOOTSTRAP}} -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: { sans: ['"Noto Sans KR"', 'system-ui', 'sans-serif'] }
+      }
+    }
+  };
+</script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --text-axis: #1f2937;
+    --text-axis-2: #374151;
+    --text-axis-3: #6b7280;
+    --stroke-axis: #6b7280;
+    --stroke-axis-soft: #9ca3af;
+    --stroke-grid: #eef2f7;
+    --cell-null: #f3f4f6;
+    --cell-stroke: #ffffff;
+    --text-on-strong: #ffffff;
+    --text-on-light: #1f2937;
+  }
+  :root.dark {
+    --text-axis: #e5e7eb;
+    --text-axis-2: #cbd5e1;
+    --text-axis-3: #94a3b8;
+    --stroke-axis: #94a3b8;
+    --stroke-axis-soft: #475569;
+    --stroke-grid: #1f2937;
+    --cell-null: #1f2937;
+    --cell-stroke: #0b1220;
+    --text-on-strong: #ffffff;
+    --text-on-light: #e5e7eb;
+  }
+  body { font-family: 'Noto Sans KR', system-ui, sans-serif; }
+  svg.heatmap, svg.chart { font-family: inherit; }
+  .axis text { fill: var(--text-axis); font-size: 11px; }
+  .cell-text { pointer-events: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .cbar-axis text { font-size: 10px; fill: var(--text-axis-2); }
+  .cbar-axis line, .cbar-axis path { stroke: var(--stroke-axis); }
+  .chart-axis text { fill: var(--text-axis-2); font-size: 10px; }
+  .chart-axis line { stroke: var(--stroke-grid); }
+  .chart-axis path { stroke: var(--stroke-axis-soft); }
+  .month-divider { stroke: var(--stroke-axis-soft); stroke-width: 1; }
+  .zero-line { stroke: var(--stroke-axis-soft); stroke-width: 0.5; stroke-dasharray: 3 3; }
+  .month-label { fill: var(--text-axis-3); font-size: 10px; text-anchor: middle; }
+  .dragging { opacity: 0.35; }
+  .drop-target { box-shadow: inset 0 2px 0 0 #3b82f6; }
+  .drag-handle { cursor: grab; }
+  .drag-handle:active { cursor: grabbing; }
+
+  /* === Empty state animations === */
+  @keyframes hint-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); background: transparent; }
+    50%     { box-shadow: 0 0 0 4px rgba(59,130,246,.25); background: rgba(59,130,246,.08); }
+  }
+  .first-hint { animation: hint-pulse 1.6s ease-in-out 3; }
+
+  @keyframes ring-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(37,99,235,.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+    100% { box-shadow: 0 0 0 0   rgba(37,99,235,0); }
+  }
+  .ring-pulse { animation: ring-pulse 1.8s ease-out 2; }
+
+  @keyframes nudge-right {
+    0%,100% { transform: translateX(0);   opacity: .7; }
+    50%     { transform: translateX(10px); opacity: 1; }
+  }
+  .nudge-right { animation: nudge-right 1.2s ease-in-out infinite; display: inline-block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .first-hint, .ring-pulse, .nudge-right { animation: none; }
+  }
+</style>
+</head>
+<body class="font-sans bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100">
+
+<header class="px-4 py-3 border-b dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-20">
+  <nav class="mt-3 flex items-center gap-2">
+    <button data-main-tab="corr" class="main-tab px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">상관관계 분석</button>
+    <button data-main-tab="trend" class="main-tab px-4 py-1.5 rounded-full text-sm font-medium border transition-colors">트렌드 추세</button>
+    <div class="ml-auto flex items-center gap-2">
+      <a id="donation-link"
+         href="https://buymeacoffee.com/minsuchae"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="hidden p-1.5 rounded-full border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+         aria-label="후원하기" title="후원하기">
+        <span>💝후원</span>
+      </a>
+      <button id="theme-toggle"
+              class="p-1.5 rounded-full border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              aria-label="테마 전환" title="테마 전환">
+        <span id="theme-icon">🌙</span>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- TAB A: 상관관계 -->
+<section id="tab-corr" class="tab-pane hidden px-4 py-4">
+  <nav id="corr-subtabs" class="flex flex-wrap gap-x-1 gap-y-1 border-b mb-4 overflow-x-auto"></nav>
+  <div id="corr-controls" class="flex items-center gap-3 mb-3 text-sm">
+    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+      <input id="toggle-cell-values" type="checkbox" class="rounded">
+      <span>셀 값 표시</span>
+    </label>
+  </div>
+  <div id="corr-body"></div>
+</section>
+
+<!-- TAB B: 트렌드 -->
+<section id="tab-trend" class="tab-pane hidden">
+  <div class="flex-1 min-w-0 px-4 py-4">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <div class="text-sm text-gray-600 dark:text-gray-400">
+        <span id="trend-count">0 / 0 선택</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="trend-capture-btn"
+                type="button"
+                class="hidden shrink-0 px-2 py-1 text-xs border border-gray-300 dark:border-slate-600 rounded text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                title="트렌드 그리드를 PNG로 저장">📷 PNG</button>
+        <button id="drawer-toggle" class="lg:hidden px-3 py-1.5 text-sm border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800">
+          ▤ 티커 편집
+        </button>
+      </div>
+    </div>
+    <div id="trend-empty" class="hidden py-10 text-gray-500 dark:text-gray-400">
+      <div class="text-center">
+        <div class="text-5xl mb-3" aria-hidden="true">
+          📊<span class="nudge-right hidden lg:inline-block ml-2 text-blue-500">→</span>
+        </div>
+        <p class="font-medium text-gray-700 dark:text-gray-200">표시할 종목이 없습니다.</p>
+        <p class="hidden lg:block text-sm mt-1">
+          오른쪽 <b>티커 편집</b> 패널에서 종목을 추가하면 추세 차트가 여기에 표시됩니다.
+        </p>
+        <p class="lg:hidden text-sm mt-1">
+          아래 <b>티커 편집 열기</b>를 눌러 종목을 추가하면 추세 차트가 여기에 표시됩니다.
+        </p>
+        <div id="trend-empty-quickpicks" class="mt-4 flex flex-wrap gap-2 justify-center px-4"></div>
+        <button id="drawer-toggle-empty"
+                class="mt-4 lg:hidden ring-pulse px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm rounded hover:bg-blue-700 dark:hover:bg-blue-600">
+          ☰ 티커 편집 열기
+        </button>
+      </div>
+    </div>
+    <div id="trend-grid" class="grid gap-3 grid-cols-1 lg:grid-cols-2"></div>
+  </div>
+
+  <aside id="drawer"
+         class="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white dark:bg-slate-900 border-l dark:border-slate-700 shadow-lg
+                transform translate-x-full transition-transform duration-200 z-40
+                lg:relative lg:translate-x-0 lg:shadow-none lg:w-80 xl:w-96
+                flex flex-col">
+    <header class="flex items-center justify-between px-4 py-3 border-b dark:border-slate-700">
+      <h2 class="font-semibold">티커 편집</h2>
+      <button id="drawer-close" class="lg:hidden p-1 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" aria-label="닫기">✕</button>
+    </header>
+    <div class="px-3 py-2 border-b dark:border-slate-700">
+      <input id="drawer-search" type="search" placeholder="검색..."
+             class="w-full px-2 py-1.5 text-sm border dark:border-slate-600 dark:bg-slate-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+    </div>
+    <div id="drawer-list" class="flex-1 overflow-y-auto px-1.5 py-2"></div>
+    <footer class="px-3 py-3 border-t dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
+      <button id="btn-all" class="px-2 py-1.5 border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800">전체 추가</button>
+      <button id="btn-none" class="px-2 py-1.5 border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800">전체 제거</button>
+      <button id="btn-default-order" class="col-span-2 px-2 py-1.5 border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800">기본 순서로 재정렬</button>
+    </footer>
+  </aside>
+
+  <div id="drawer-backdrop" class="hidden fixed inset-0 bg-black/30 z-30 lg:hidden"></div>
+</section>
+
+<script>
+const PAYLOAD = JSON.parse(`{{PAYLOAD_JSON}}`);
+
+
+const ACTIVE_TAB_CLS = ["bg-blue-600", "text-white", "border-blue-600",
+                        "dark:bg-blue-500", "dark:border-blue-500"];
+const INACTIVE_TAB_CLS = ["bg-white", "text-gray-600", "border-gray-300", "hover:bg-gray-50",
+                          "dark:bg-slate-900", "dark:text-gray-400",
+                          "dark:border-slate-600", "dark:hover:bg-slate-800"];
+
+const cssVar = (name) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const tabPanes = {
+  corr: document.getElementById("tab-corr"),
+  trend: document.getElementById("tab-trend"),
+};
+const mainTabs = document.querySelectorAll(".main-tab");
+function activateMainTab(name) {
+  mainTabs.forEach(b => {
+    const isActive = b.dataset.mainTab === name;
+    if (isActive) document.title = b.textContent.trim();
+    b.classList.remove(...ACTIVE_TAB_CLS, ...INACTIVE_TAB_CLS);
+    b.classList.add(...(isActive ? ACTIVE_TAB_CLS : INACTIVE_TAB_CLS));
+  });
+  if (name === "corr") {
+    tabPanes.corr.classList.remove("hidden");
+    tabPanes.trend.classList.add("hidden");
+    tabPanes.trend.classList.remove("flex");
+  } else {
+    tabPanes.corr.classList.add("hidden");
+    tabPanes.trend.classList.remove("hidden");
+    tabPanes.trend.classList.add("flex");
+  }
+}
+mainTabs.forEach(b => b.addEventListener("click", () => activateMainTab(b.dataset.mainTab)));
+activateMainTab("corr");
+
+/* =================== THEME TOGGLE =================== */
+const THEME_KEY = "theme";
+const themeBtn = document.getElementById("theme-toggle");
+const themeIcon = document.getElementById("theme-icon");
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === "dark") root.classList.add("dark");
+  else root.classList.remove("dark");
+  themeIcon.textContent = (theme === "dark") ? "☀️" : "🌙";
+}
+
+applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+
+themeBtn.addEventListener("click", () => {
+  const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyTheme(next);
+  renderCorrBody();
+  renderTrendGrid();
+});
+
+/* =================== DONATION (5+ days after first visit) =================== */
+(function setupDonation() {
+  const FIRST_VISIT_KEY = "firstVisitDate";
+  const SHOW_AFTER_DAYS = 5;
+  const el = document.getElementById("donation-link");
+  if (!el) return;
+
+  const toLocalYMD = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const parseLocalYMD = (s) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  let stored = null;
+  try { stored = localStorage.getItem(FIRST_VISIT_KEY); } catch (e) { return; }
+
+  const now = new Date();
+  const todayYMD = toLocalYMD(now);
+
+  if (!stored) {
+    try { localStorage.setItem(FIRST_VISIT_KEY, todayYMD); } catch (e) {}
+    return;
+  }
+
+  const first = parseLocalYMD(stored);
+  if (!first) return;
+
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((todayMidnight - first) / 86400000);
+
+  if (diffDays >= SHOW_AFTER_DAYS) {
+    el.classList.remove("hidden");
+  }
+})();
+
+/* =================== CORR SUB-TABS =================== */
+const corrSubtabsEl = document.getElementById("corr-subtabs");
+const corrBodyEl = document.getElementById("corr-body");
+const subKeys = PAYLOAD.corr.tab_keys;
+let activeCorrKey = "overall";
+const CORR_CELLVAL_KEY = "corrShowCellValues";
+let showCellValues = (() => {
+  try { return localStorage.getItem(CORR_CELLVAL_KEY) === "1"; }
+  catch (e) { return false; }
+})();
+document.getElementById("toggle-cell-values").checked = showCellValues;
+
+function subLabel(key) {
+  return key === "overall" ? "전체요약" : `${key}월`;
+}
+
+function renderCorrSubtabs() {
+  corrSubtabsEl.innerHTML = "";
+  for (const key of subKeys) {
+    const btn = document.createElement("button");
+    btn.textContent = subLabel(key);
+    const isActive = key === activeCorrKey;
+    btn.className = "px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors " +
+      (isActive
+        ? "border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-300"
+        : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100");
+    btn.addEventListener("click", () => {
+      activeCorrKey = key;
+      renderCorrSubtabs();
+      renderCorrBody();
+    });
+    corrSubtabsEl.appendChild(btn);
+  }
+}
+
+/* =================== HEATMAP =================== */
+const corrColor = d3.scaleDiverging()
+  .domain([-1, 0, 1])
+  .interpolator(t => d3.interpolateRdBu(1 - t));
+
+const LABEL_W = 180;
+const PAD_R = 16;
+
+function chooseCell(n, containerW) {
+  const avail = Math.max(0, containerW - LABEL_W - PAD_R);
+  const ideal = Math.floor(avail / n);
+  return Math.max(11, Math.min(32, ideal));
+}
+
+// 셀 크기에 따라 표시 포맷과 폰트를 동시에 결정. 표시 불가하면 null.
+function pickTextStyle(cell) {
+  const targets = [
+    { chars: 5, format: "full" },   // "-0.99"
+    { chars: 4, format: "drop0" },  // "-.99"
+    { chars: 3, format: "onedec" }, // "-.9"
+  ];
+  for (const t of targets) {
+    const maxFont = Math.floor(cell / (t.chars * 0.6));
+    if (maxFont >= 7) {
+      return { format: t.format, font: Math.min(12, maxFont) };
+    }
+  }
+  return null;
+}
+
+function formatCellValue(v, format) {
+  if (format === "full") return v.toFixed(2);
+  const sign = v < 0 ? "-" : "";
+  if (format === "drop0") return sign + Math.abs(v).toFixed(2).replace(/^0/, "");
+  if (format === "onedec") return sign + Math.abs(v).toFixed(1).replace(/^0/, "");
+  return "";
+}
+
+async function downloadSvgAsPng(svgEl, filename) {
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+  // 외부 CSS에 의존하는 클래스를 직렬화 SVG에 인라인으로 주입 (캡처 시 폰트/색 보존)
+  const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.textContent =
+    `text { font-family: 'Noto Sans KR', system-ui, sans-serif; }
+     .axis text { fill: ${cssVar("--text-axis")}; font-size: 11px; }
+     .cell-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+     .cbar-axis text { fill: ${cssVar("--text-axis-2")}; font-size: 10px; }
+     .cbar-axis line, .cbar-axis path { stroke: ${cssVar("--stroke-axis")}; fill: none; }
+     .chart-axis text { fill: ${cssVar("--text-axis-2")}; font-size: 10px; }
+     .chart-axis line { stroke: ${cssVar("--stroke-grid")}; }
+     .chart-axis path { stroke: ${cssVar("--stroke-axis-soft")}; fill: none; }
+     .month-divider   { stroke: ${cssVar("--stroke-axis-soft")}; stroke-width: 1; }
+     .zero-line       { stroke: ${cssVar("--stroke-axis-soft")}; stroke-width: 0.5; stroke-dasharray: 3 3; fill: none; }
+     .month-label     { fill: ${cssVar("--text-axis-3")}; font-size: 10px; text-anchor: middle; }`;
+  clone.insertBefore(style, clone.firstChild);
+
+  const vb = svgEl.viewBox.baseVal;
+  const w = vb && vb.width ? vb.width : svgEl.clientWidth || 800;
+  const h = vb && vb.height ? vb.height : svgEl.clientHeight || 600;
+  // 오프스크린 렌더링 시 페이지의 width:100%/max-width 영향을 받지 않도록 명시
+  clone.setAttribute("width", w);
+  clone.setAttribute("height", h);
+  clone.style.maxWidth = "none";
+  clone.style.width = w + "px";
+  clone.style.height = h + "px";
+
+  const xml = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+  const DPR = 2;
+
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(w * DPR);
+    canvas.height = Math.round(h * DPR);
+    const ctx = canvas.getContext("2d");
+    const bg = getComputedStyle(document.body).backgroundColor;
+    ctx.fillStyle = (bg && bg !== "rgba(0, 0, 0, 0)") ? bg : "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    await new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        resolve();
+      }, "image/png");
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function drawHeatmap(container, chart, containerW, titleLine1, titleLine2) {
+  const { labels, matrix } = chart;
+  const n = labels.length;
+  const cell = chooseCell(n, containerW);
+  const labelW = LABEL_W;
+  const xLabelH = 140;
+  const cbarGap = 36;
+  const cbarH = 26;
+  const cbarTickH = 22;
+  const padR = PAD_R;
+  const padB = 8;
+  const titleH = (titleLine1 || titleLine2) ? 56 : 0;
+
+  const gridW = n * cell;
+  const gridH = n * cell;
+  const width = labelW + gridW + padR;
+  const height = titleH + gridH + xLabelH + cbarGap + cbarH + cbarTickH + padB;
+
+  const wrap = container.append("div").attr("class", "overflow-x-auto");
+  const svg = wrap.append("svg")
+    .attr("class", "heatmap block")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .style("max-width", "100%")
+    .style("width", "100%")
+    .style("height", "auto");
+
+  // 캡처 시 컨텍스트가 함께 보이도록 SVG 안에 타이틀 텍스트 박아넣기
+  if (titleH > 0) {
+    const titleG = svg.append("g").attr("class", "heatmap-title");
+    titleG.append("text")
+      .attr("x", 8).attr("y", 24)
+      .attr("fill", cssVar("--text-axis"))
+      .style("font-family", "'Noto Sans KR', system-ui, sans-serif")
+      .style("font-size", "16px")
+      .style("font-weight", "700")
+      .text(titleLine1 || "");
+    titleG.append("text")
+      .attr("x", 8).attr("y", 44)
+      .attr("fill", cssVar("--text-axis-3"))
+      .style("font-family", "'Noto Sans KR', system-ui, sans-serif")
+      .style("font-size", "12px")
+      .text(titleLine2 || "");
+  }
+
+  const ox = labelW;
+  const oy = titleH;
+
+  // 셀 (하삼각, 대각선 제외)
+  const g = svg.append("g").attr("transform", `translate(${ox},${oy})`);
+  const textStyle = pickTextStyle(cell);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < i; j++) {
+      const v = matrix[i] ? matrix[i][j] : null;
+      const x = j * cell, y = i * cell;
+      g.append("rect")
+        .attr("x", x).attr("y", y)
+        .attr("width", cell).attr("height", cell)
+        .attr("fill", v == null ? cssVar("--cell-null") : corrColor(v))
+        .attr("stroke", cssVar("--cell-stroke")).attr("stroke-width", 0.5);
+      if (v != null && showCellValues && textStyle) {
+        const txtColor = Math.abs(v) > 0.55 ? cssVar("--text-on-strong") : cssVar("--text-on-light");
+        g.append("text")
+          .attr("class", "cell-text")
+          .attr("x", x + cell / 2)
+          .attr("y", y + cell / 2 + textStyle.font * 0.35)
+          .attr("text-anchor", "middle")
+          .attr("fill", txtColor)
+          .style("font-size", `${textStyle.font}px`)
+          .text(formatCellValue(v, textStyle.format));
+      }
+    }
+  }
+
+  // y축 라벨 (첫 라벨 i==0 생략)
+  const yAxis = svg.append("g").attr("class", "axis")
+    .attr("transform", `translate(${ox - 6},${oy})`);
+  labels.forEach((lab, i) => {
+    if (i === 0) return;
+    yAxis.append("text")
+      .attr("x", 0)
+      .attr("y", i * cell + cell / 2 + 4)
+      .attr("text-anchor", "end")
+      .text(lab);
+  });
+
+  // x축 라벨 (마지막 j==n-1 생략)
+  const xAxis = svg.append("g").attr("class", "axis")
+    .attr("transform", `translate(${ox},${oy + gridH + 6})`);
+  labels.forEach((lab, j) => {
+    if (j === n - 1) return;
+    xAxis.append("text")
+      .attr("x", 0).attr("y", 0)
+      .attr("text-anchor", "end")
+      .attr("transform", `translate(${j * cell + cell / 2},0) rotate(-45)`)
+      .text(lab);
+  });
+
+  // 가로 컬러바 (격자 하단)
+  const cbarX = ox;
+  const cbarY = oy + gridH + xLabelH + cbarGap;
+  const gradId = `grad-${Math.random().toString(36).slice(2)}`;
+  const defs = svg.append("defs");
+  const grad = defs.append("linearGradient")
+    .attr("id", gradId)
+    .attr("x1", "0%").attr("y1", "0%")
+    .attr("x2", "100%").attr("y2", "0%");
+  const stops = 20;
+  for (let s = 0; s <= stops; s++) {
+    const t = s / stops;
+    const v = -1 + 2 * t;
+    grad.append("stop")
+      .attr("offset", `${t * 100}%`)
+      .attr("stop-color", corrColor(v));
+  }
+  svg.append("rect")
+    .attr("x", cbarX).attr("y", cbarY)
+    .attr("width", gridW).attr("height", cbarH)
+    .attr("fill", `url(#${gradId})`)
+    .attr("stroke", cssVar("--stroke-axis-soft"));
+
+  const cbarScale = d3.scaleLinear().domain([-1, 1]).range([0, gridW]);
+  const cbarAxis = d3.axisBottom(cbarScale)
+    .tickValues([-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1])
+    .tickFormat(d3.format(".2f"));
+  svg.append("g")
+    .attr("class", "cbar-axis")
+    .attr("transform", `translate(${cbarX},${cbarY + cbarH})`)
+    .call(cbarAxis);
+}
+
+function updateCellValuesToggleVisibility(containerW) {
+  const anyRenderable = PAYLOAD.corr.sections.some(s => {
+    const chart = s.charts[activeCorrKey];
+    if (!chart) return false;
+    const cell = chooseCell(chart.labels.length, containerW);
+    return pickTextStyle(cell) !== null;
+  });
+  document.getElementById("corr-controls").classList.toggle("hidden", !anyRenderable);
+}
+
+function renderCorrBody() {
+  corrBodyEl.innerHTML = "";
+  let containerW = corrBodyEl.clientWidth;
+  if (containerW < 50) {
+    // 탭이 hidden인 초기 상태 대비
+    containerW = document.documentElement.clientWidth - 32;
+  }
+  updateCellValuesToggleVisibility(containerW);
+  const root = d3.select(corrBodyEl);
+  for (const section of PAYLOAD.corr.sections) {
+    const chart = section.charts[activeCorrKey];
+    const sec = root.append("section").attr("class", "mb-8");
+    const head = sec.append("div")
+      .attr("class", "flex items-center justify-between gap-2 mb-2 pb-1 border-b dark:border-slate-700");
+    head.append("h2").attr("class", "text-base font-semibold")
+      .text(section.label);
+    if (!chart) {
+      sec.append("div").attr("class", "text-sm text-gray-400 dark:text-gray-500 italic py-2")
+        .text(`${subLabel(activeCorrKey)} 데이터 없음`);
+      continue;
+    }
+    const sectionKey = section.key || "section";
+    head.append("button")
+      .attr("type", "button")
+      .attr("title", "PNG로 저장")
+      .attr("class", "shrink-0 px-2 py-1 text-xs border border-gray-300 dark:border-slate-600 rounded text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors")
+      .text("📷 PNG")
+      .on("click", () => {
+        const svgEl = sec.select("svg.heatmap").node();
+        if (!svgEl) return;
+        downloadSvgAsPng(svgEl, `corr_${sectionKey}_${activeCorrKey}.png`)
+          .catch(err => console.error("PNG 저장 실패:", err));
+      });
+    drawHeatmap(sec, chart, containerW, section.label, subLabel(activeCorrKey));
+  }
+}
+
+document.getElementById("toggle-cell-values").addEventListener("change", (e) => {
+  showCellValues = e.target.checked;
+  try { localStorage.setItem(CORR_CELLVAL_KEY, showCellValues ? "1" : "0"); } catch (err) {}
+  renderCorrBody();
+});
+
+renderCorrSubtabs();
+renderCorrBody();
+
+// 컨테이너 폭 변화 시 디바운스 재렌더 (리사이즈/회전 대응)
+let _corrResizeT;
+let _lastCorrW = corrBodyEl.clientWidth;
+const corrRO = new ResizeObserver(() => {
+  const w = corrBodyEl.clientWidth;
+  if (w === _lastCorrW) return;
+  _lastCorrW = w;
+  clearTimeout(_corrResizeT);
+  _corrResizeT = setTimeout(renderCorrBody, 150);
+});
+corrRO.observe(corrBodyEl);
+
+/* =================== TREND CHARTS =================== */
+const MIN_SAMPLES = PAYLOAD.trend.min_samples;
+const trendMonths = PAYLOAD.trend.months;
+const monthOrder = new Map(trendMonths.map((m, i) => [m, i]));
+
+const T_W = 320, T_H = 180;
+const T_MARGIN = { top: 6, right: 6, bottom: 22, left: 36 };
+const T_PW = T_W - T_MARGIN.left - T_MARGIN.right;
+const T_PH = T_H - T_MARGIN.top - T_MARGIN.bottom;
+
+function buildPosMap(rows) {
+  const seen = new Map();
+  for (const r of rows) {
+    const k = `${r.month}-${r.day_idx}`;
+    if (!seen.has(k)) seen.set(k, { month: r.month, day_idx: r.day_idx });
+  }
+  const arr = Array.from(seen.values()).sort((a, b) =>
+    (monthOrder.get(a.month) - monthOrder.get(b.month)) ||
+    (a.day_idx - b.day_idx));
+  const lookup = new Map();
+  arr.forEach((k, i) => lookup.set(`${k.month}-${k.day_idx}`, i));
+  return { arr, lookup };
+}
+
+function monthStartsOf(posArr) {
+  const starts = new Map();
+  posArr.forEach((k, i) => {
+    if (!starts.has(k.month)) starts.set(k.month, i);
+  });
+  return starts;
+}
+
+function drawFrame(g, x, y, posArr) {
+  g.append("line").attr("class", "zero-line")
+    .attr("x1", 0).attr("x2", T_PW)
+    .attr("y1", y(0)).attr("y2", y(0));
+
+  const yAxis = d3.axisLeft(y).ticks(4).tickSize(-T_PW).tickFormat(d3.format(".2f"));
+  const yg = g.append("g").attr("class", "chart-axis").call(yAxis);
+  yg.select(".domain").remove();
+
+  const starts = monthStartsOf(posArr);
+  const months = Array.from(starts.keys());
+  for (let i = 0; i < months.length; i++) {
+    const m = months[i];
+    const start = starts.get(m);
+    const end = (i + 1 < months.length) ? starts.get(months[i + 1]) : posArr.length;
+    const mid = (start + end - 1) / 2;
+    g.append("text").attr("class", "month-label")
+      .attr("x", x(mid)).attr("y", T_PH + 14)
+      .text(`${m}월`);
+  }
+}
+
+function drawMonthDividers(g, x, posArr) {
+  const starts = monthStartsOf(posArr);
+  const months = Array.from(starts.keys());
+  for (let i = 1; i < months.length; i++) {
+    const p = starts.get(months[i]);
+    g.append("line").attr("class", "month-divider")
+      .attr("x1", x(p - 0.5)).attr("x2", x(p - 0.5))
+      .attr("y1", 0).attr("y2", T_PH);
+  }
+}
+
+function yScaleFrom(values) {
+  const finite = values.filter(v => Number.isFinite(v));
+  let yMin = Math.min(0, d3.min(finite));
+  let yMax = Math.max(0, d3.max(finite));
+  if (!Number.isFinite(yMin) || !Number.isFinite(yMax)) { yMin = -1; yMax = 1; }
+  const span = yMax - yMin;
+  const pad = span > 0 ? span * 0.05 : 0.1;
+  return d3.scaleLinear().domain([yMin - pad, yMax + pad]).range([T_PH, 0]);
+}
+
+function makeChartG(parent) {
+  const svg = parent.append("svg")
+    .attr("class", "chart w-full block")
+    .attr("viewBox", `0 0 ${T_W} ${T_H}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
+  return svg.append("g").attr("transform", `translate(${T_MARGIN.left},${T_MARGIN.top})`);
+}
+
+function drawBand(parent, chart) {
+  if (!chart || !chart.rows || chart.rows.length === 0) {
+    parent.append("div").attr("class", "text-xs text-gray-400 dark:text-gray-500 italic py-4 text-center")
+      .text("데이터 없음");
+    return;
+  }
+  const rows = chart.rows;
+  const { arr: posArr, lookup } = buildPosMap(rows);
+  const x = d3.scaleLinear().domain([-0.5, posArr.length - 0.5]).range([0, T_PW]);
+  const y = yScaleFrom(rows.flatMap(r => [r.upper, r.lower]));
+
+  const g = makeChartG(parent);
+  drawFrame(g, x, y, posArr);
+
+  const sorted = rows
+    .map(r => ({ pos: lookup.get(`${r.month}-${r.day_idx}`), ...r }))
+    .sort((a, b) => a.pos - b.pos);
+
+  if (chart.shade_low_sample) {
+    const halfCell = (x(1) - x(0)) / 2;
+    for (const d of sorted) {
+      if (d.n_years < MIN_SAMPLES) {
+        g.append("rect")
+          .attr("x", x(d.pos) - halfCell).attr("width", halfCell * 2)
+          .attr("y", 0).attr("height", T_PH)
+          .attr("fill", "crimson").attr("fill-opacity", 0.18);
+      }
+    }
+  }
+
+  const area = d3.area()
+    .x(d => x(d.pos))
+    .y0(d => y(d.lower))
+    .y1(d => y(d.upper))
+    .defined(d => Number.isFinite(d.lower) && Number.isFinite(d.upper));
+  g.append("path").datum(sorted)
+    .attr("fill", "steelblue").attr("fill-opacity", 0.22).attr("d", area);
+
+  const line = d3.line()
+    .x(d => x(d.pos))
+    .y(d => y(d.median))
+    .defined(d => Number.isFinite(d.median));
+  g.append("path").datum(sorted)
+    .attr("fill", "none").attr("stroke", "steelblue")
+    .attr("stroke-width", 1.5).attr("d", line);
+
+  drawMonthDividers(g, x, posArr);
+}
+
+function drawLines(parent, chart) {
+  if (!chart || !chart.rows || chart.rows.length === 0) {
+    parent.append("div").attr("class", "text-xs text-gray-400 dark:text-gray-500 italic py-4 text-center")
+      .text("데이터 없음");
+    return;
+  }
+  const rows = chart.rows;
+  const { arr: posArr, lookup } = buildPosMap(rows);
+  const x = d3.scaleLinear().domain([-0.5, posArr.length - 0.5]).range([0, T_PW]);
+  const y = yScaleFrom(rows.map(r => r.cumflow));
+
+  const byYear = d3.group(rows, r => r.year);
+  const years = Array.from(byYear.keys()).sort((a, b) => a - b);
+  const palette = d3.schemeTableau10;
+  const colorByYear = yr => palette[Math.max(0, years.indexOf(yr)) % palette.length];
+
+  const lg = parent.append("div")
+    .attr("class", "flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500 dark:text-gray-400 mb-0.5");
+  for (const yr of years) {
+    const item = lg.append("span").attr("class", "inline-flex items-center gap-1");
+    item.append("span")
+      .attr("class", "inline-block w-2.5 h-0.5 rounded-sm")
+      .style("background", colorByYear(yr));
+    item.append("span").text(yr);
+  }
+
+  const g = makeChartG(parent);
+  drawFrame(g, x, y, posArr);
+
+  const line = d3.line()
+    .x(d => x(d.pos))
+    .y(d => y(d.cumflow))
+    .defined(d => Number.isFinite(d.cumflow));
+  for (const yr of years) {
+    const pts = byYear.get(yr)
+      .map(r => ({ pos: lookup.get(`${r.month}-${r.day_idx}`), cumflow: r.cumflow }))
+      .sort((a, b) => a.pos - b.pos);
+    g.append("path").datum(pts)
+      .attr("fill", "none")
+      .attr("stroke", colorByYear(yr))
+      .attr("stroke-width", 1.3)
+      .attr("d", line);
+  }
+
+  drawMonthDividers(g, x, posArr);
+}
+
+
+const STORAGE_KEY = "tickers";
+const tickersByStem = new Map(PAYLOAD.trend.tickers.map(t => [t.stem, t]));
+const allStems = PAYLOAD.trend.tickers.map(t => t.stem);
+const defaultOrder = PAYLOAD.trend.default_order.filter(s => tickersByStem.has(s));
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { selected: [] };
+    const obj = JSON.parse(raw);
+    if (obj.version !== 1 || !Array.isArray(obj.selected)) return { selected: [] };
+    const valid = new Set(allStems);
+    return { selected: obj.selected.filter(s => valid.has(s)) };
+  } catch { return { selected: [] }; }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY,
+      JSON.stringify({ version: 1, selected: state.selected }));
+  } catch (e) { console.warn("localStorage 저장 실패:", e); }
+}
+
+const state = loadState();
+
+const HINT_KEY = "trendHintShown_v1";
+let firstHintShown = (() => {
+  try { return sessionStorage.getItem(HINT_KEY) === "1"; } catch (e) { return false; }
+})();
+function markHintShown() {
+  firstHintShown = true;
+  try { sessionStorage.setItem(HINT_KEY, "1"); } catch (e) {}
+}
+
+const drawerEl = document.getElementById("drawer");
+const backdropEl = document.getElementById("drawer-backdrop");
+const listEl = document.getElementById("drawer-list");
+const searchEl = document.getElementById("drawer-search");
+const countEl = document.getElementById("trend-count");
+const emptyEl = document.getElementById("trend-empty");
+const gridEl = document.getElementById("trend-grid");
+
+let searchQuery = "";
+
+function openDrawer() {
+  drawerEl.classList.remove("translate-x-full");
+  backdropEl.classList.remove("hidden");
+}
+function closeDrawer() {
+  drawerEl.classList.add("translate-x-full");
+  backdropEl.classList.add("hidden");
+}
+document.getElementById("drawer-toggle").addEventListener("click", openDrawer);
+document.getElementById("drawer-toggle-empty").addEventListener("click", openDrawer);
+document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+backdropEl.addEventListener("click", closeDrawer);
+
+searchEl.addEventListener("input", e => {
+  searchQuery = e.target.value.trim().toLowerCase();
+  renderDrawer();
+});
+
+document.getElementById("btn-all").addEventListener("click", () => {
+  state.selected = [...defaultOrder];
+  saveState(); renderAll();
+});
+document.getElementById("btn-none").addEventListener("click", () => {
+  state.selected = [];
+  saveState(); renderAll();
+});
+document.getElementById("btn-default-order").addEventListener("click", () => {
+  const set = new Set(state.selected);
+  state.selected = defaultOrder.filter(s => set.has(s));
+  saveState(); renderAll();
+});
+
+function matchSearch(title) {
+  if (!searchQuery) return true;
+  return title.toLowerCase().includes(searchQuery);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function renderDrawer() {
+  listEl.innerHTML = "";
+
+  const selectedSet = new Set(state.selected);
+  const selectedItems = state.selected
+    .map(s => tickersByStem.get(s))
+    .filter(t => t && matchSearch(t.title));
+  const unselectedItems = allStems
+    .filter(s => !selectedSet.has(s))
+    .map(s => tickersByStem.get(s))
+    .filter(t => t && matchSearch(t.title));
+
+  // 선택됨 그룹
+  const selH = document.createElement("div");
+  selH.className = "px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center justify-between";
+  selH.innerHTML = `<span>선택됨 (${state.selected.length})</span><span class="text-[10px]">⋮ 드래그</span>`;
+  listEl.appendChild(selH);
+
+  for (const t of selectedItems) {
+    const row = document.createElement("div");
+    row.className = "ticker-row flex items-center gap-1 px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-slate-800";
+    row.dataset.stem = t.stem;
+    row.dataset.group = "selected";
+    row.draggable = true;
+    row.innerHTML = `
+      <span class="drag-handle text-gray-400 dark:text-gray-500 select-none px-0.5">⋮</span>
+      <input type="checkbox" class="cb" checked>
+      <span class="flex-1 min-w-0 truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</span>
+      <button class="remove-btn text-gray-400 dark:text-gray-500 hover:text-red-500 px-1" title="제거" aria-label="제거">×</button>
+    `;
+    bindRowEvents(row, t.stem, true);
+    listEl.appendChild(row);
+  }
+
+  if (selectedItems.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "px-2 py-2 text-xs text-gray-400 dark:text-gray-500 italic";
+    empty.textContent = searchQuery ? "검색 결과 없음" : "선택된 티커 없음";
+    listEl.appendChild(empty);
+  }
+
+  // 미선택 그룹
+  const unsH = document.createElement("div");
+  unsH.className = "mt-3 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium";
+  unsH.textContent = `미선택 (${allStems.length - state.selected.length})`;
+  listEl.appendChild(unsH);
+
+  unselectedItems.forEach((t, i) => {
+    const row = document.createElement("div");
+    let cls = "ticker-row flex items-center gap-1 px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-slate-800";
+    if (!firstHintShown && state.selected.length === 0 && !searchQuery && i === 0) {
+      cls += " first-hint";
+    }
+    row.className = cls;
+    row.dataset.stem = t.stem;
+    row.dataset.group = "unselected";
+    row.innerHTML = `
+      <span class="inline-block w-3"></span>
+      <input type="checkbox" class="cb">
+      <span class="flex-1 min-w-0 truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</span>
+    `;
+    bindRowEvents(row, t.stem, false);
+    listEl.appendChild(row);
+  });
+
+  if (unselectedItems.length === 0 && searchQuery) {
+    const empty = document.createElement("div");
+    empty.className = "px-2 py-2 text-xs text-gray-400 dark:text-gray-500 italic";
+    empty.textContent = "검색 결과 없음 (미선택)";
+    listEl.appendChild(empty);
+  }
+}
+
+function bindRowEvents(row, stem, isSelected) {
+  const cb = row.querySelector(".cb");
+  cb.addEventListener("change", () => {
+    if (cb.checked) addStem(stem); else removeStem(stem);
+  });
+  const rm = row.querySelector(".remove-btn");
+  if (rm) rm.addEventListener("click", () => removeStem(stem));
+
+  if (isSelected) {
+    row.addEventListener("dragstart", e => {
+      row.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", stem);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      document.querySelectorAll(".drop-target").forEach(el => el.classList.remove("drop-target"));
+    });
+    row.addEventListener("dragover", e => {
+      const fromStem = e.dataTransfer.types.includes("text/plain") ? null : null;
+      if (row.dataset.group !== "selected") return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      document.querySelectorAll(".drop-target").forEach(el => el.classList.remove("drop-target"));
+      row.classList.add("drop-target");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      const fromStem = e.dataTransfer.getData("text/plain");
+      if (!fromStem || fromStem === stem) return;
+      moveStemBefore(fromStem, stem);
+    });
+  }
+}
+
+function addStem(stem) {
+  markHintShown();
+  if (!state.selected.includes(stem)) state.selected.push(stem);
+  saveState(); renderAll();
+}
+function removeStem(stem) {
+  state.selected = state.selected.filter(s => s !== stem);
+  saveState(); renderAll();
+}
+function moveStemBefore(fromStem, toStem) {
+  const arr = state.selected.slice();
+  const fromIdx = arr.indexOf(fromStem);
+  if (fromIdx < 0) return;
+  arr.splice(fromIdx, 1);
+  const toIdx = arr.indexOf(toStem);
+  if (toIdx < 0) { arr.push(fromStem); }
+  else { arr.splice(toIdx, 0, fromStem); }
+  state.selected = arr;
+  saveState(); renderAll();
+}
+
+function renderQuickPicks() {
+  const el = document.getElementById("trend-empty-quickpicks");
+  if (!el) return;
+  el.innerHTML = "";
+  const pool = (defaultOrder.length ? defaultOrder : allStems).slice(0, 3);
+  for (const stem of pool) {
+    const t = tickersByStem.get(stem);
+    if (!t) continue;
+    const btn = document.createElement("button");
+    btn.className = "px-3 py-1.5 text-sm rounded-full border border-blue-300 dark:border-blue-700 " +
+                    "text-blue-700 dark:text-blue-300 " +
+                    "hover:bg-blue-50 dark:hover:bg-blue-900/30 max-w-[14rem] truncate";
+    btn.textContent = `+ ${t.title}`;
+    btn.title = `추가: ${t.title}`;
+    btn.addEventListener("click", () => addStem(stem));
+    el.appendChild(btn);
+  }
+}
+
+function renderTrendGrid() {
+  gridEl.innerHTML = "";
+  countEl.textContent = `${state.selected.length} / ${allStems.length} 선택`;
+
+  const captureBtn = document.getElementById("trend-capture-btn");
+
+  if (state.selected.length === 0) {
+    emptyEl.classList.remove("hidden");
+    gridEl.classList.add("hidden");
+    if (captureBtn) captureBtn.classList.add("hidden");
+    renderQuickPicks();
+    return;
+  }
+  emptyEl.classList.add("hidden");
+  gridEl.classList.remove("hidden");
+  if (captureBtn) captureBtn.classList.remove("hidden");
+
+  const root = d3.select(gridEl);
+  for (const stem of state.selected) {
+    const t = tickersByStem.get(stem);
+    if (!t) continue;
+
+    const card = root.append("article")
+      .attr("class", "border dark:border-slate-700 rounded p-2 bg-white dark:bg-slate-800 min-w-0");
+    card.append("h3")
+      .attr("class", "text-sm font-semibold mb-1 truncate")
+      .attr("title", t.title)
+      .text(t.title);
+
+    const charts = card.append("div")
+      .attr("class", "grid grid-cols-1 sm:grid-cols-2 gap-2");
+
+    // 전체
+    const all = charts.append("figure").attr("class", "min-w-0");
+    all.append("figcaption")
+      .attr("class", "text-[11px] text-gray-500 dark:text-gray-400 mb-0.5")
+      .text("전체");
+    if (t.all) {
+      if (t.all.type === "band") drawBand(all, t.all);
+      else drawLines(all, t.all);
+    } else {
+      all.append("div").attr("class", "text-xs text-gray-400 dark:text-gray-500 italic py-4 text-center")
+        .text("데이터 없음");
+    }
+
+    // 최근 5년
+    const rec = charts.append("figure").attr("class", "min-w-0");
+    const recCap = rec.append("figcaption")
+      .attr("class", "text-[11px] text-gray-500 dark:text-gray-400 mb-0.5 flex items-center gap-1");
+    recCap.append("span").text("최근 5년");
+    if (t.recent && t.recent.mode_label) {
+      const ml = t.recent.mode_label;
+      const cls = ml.cls === "band"
+        ? "bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200"
+        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+      recCap.append("span")
+        .attr("class", `inline-block text-[9px] font-medium px-1.5 py-0.5 rounded-full ${cls}`)
+        .text(ml.text);
+    }
+    if (t.recent) {
+      if (t.recent.type === "band") drawBand(rec, t.recent);
+      else drawLines(rec, t.recent);
+    } else {
+      rec.append("div").attr("class", "text-xs text-gray-400 dark:text-gray-500 italic py-4 text-center")
+        .text("데이터 없음");
+    }
+  }
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function captureTrendGrid() {
+  if (state.selected.length === 0) return Promise.resolve();
+
+  const cards = Array.from(gridEl.querySelectorAll("article"));
+  if (cards.length === 0) return Promise.resolve();
+
+  const isDark = document.documentElement.classList.contains("dark");
+  const cardBg = isDark ? "#1e293b" : "#ffffff";
+  const cardBorder = cssVar("--stroke-grid") || (isDark ? "#1f2937" : "#eef2f7");
+  const titleColor = cssVar("--text-axis") || (isDark ? "#e5e7eb" : "#1f2937");
+  const captionColor = cssVar("--text-axis-3") || (isDark ? "#94a3b8" : "#6b7280");
+
+  const PAD = 8;
+  const gridRect = gridEl.getBoundingClientRect();
+  const totalW = Math.ceil(gridRect.width);
+  const totalH = Math.ceil(gridRect.height);
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("xmlns", SVG_NS);
+  svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  svg.setAttribute("width", totalW);
+  svg.setAttribute("height", totalH);
+  svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+
+  for (const card of cards) {
+    const cr = card.getBoundingClientRect();
+    const cx = cr.left - gridRect.left;
+    const cy = cr.top - gridRect.top;
+    const cw = cr.width;
+    const ch = cr.height;
+
+    const cardG = document.createElementNS(SVG_NS, "g");
+    cardG.setAttribute("transform", `translate(${cx},${cy})`);
+
+    const bg = document.createElementNS(SVG_NS, "rect");
+    bg.setAttribute("x", 0);
+    bg.setAttribute("y", 0);
+    bg.setAttribute("width", cw);
+    bg.setAttribute("height", ch);
+    bg.setAttribute("rx", 4);
+    bg.setAttribute("fill", cardBg);
+    bg.setAttribute("stroke", cardBorder);
+    bg.setAttribute("stroke-width", 1);
+    cardG.appendChild(bg);
+
+    const titleEl = card.querySelector("h3");
+    if (titleEl) {
+      const tr = titleEl.getBoundingClientRect();
+      const t = document.createElementNS(SVG_NS, "text");
+      t.setAttribute("x", PAD);
+      t.setAttribute("y", (tr.top - cr.top) + tr.height - 4);
+      t.setAttribute("fill", titleColor);
+      t.setAttribute("font-size", 13);
+      t.setAttribute("font-weight", 600);
+      t.textContent = titleEl.textContent;
+      cardG.appendChild(t);
+    }
+
+    const figures = card.querySelectorAll("figure");
+    for (const fig of figures) {
+      const fr = fig.getBoundingClientRect();
+      const fx = fr.left - cr.left;
+      const fy = fr.top - cr.top;
+
+      const caption = fig.querySelector("figcaption");
+      if (caption) {
+        const capParts = Array.from(caption.children).length > 0
+          ? Array.from(caption.children).map(c => c.textContent.trim()).filter(Boolean).join(" ")
+          : caption.textContent.trim();
+        const capR = caption.getBoundingClientRect();
+        const ct = document.createElementNS(SVG_NS, "text");
+        ct.setAttribute("x", fx);
+        ct.setAttribute("y", (capR.top - cr.top) + capR.height - 2);
+        ct.setAttribute("fill", captionColor);
+        ct.setAttribute("font-size", 11);
+        ct.textContent = capParts;
+        cardG.appendChild(ct);
+      }
+
+      const chartSvg = fig.querySelector("svg");
+      if (chartSvg) {
+        const sr = chartSvg.getBoundingClientRect();
+        const sx = sr.left - cr.left;
+        const sy = sr.top - cr.top;
+        const clone = chartSvg.cloneNode(true);
+        clone.setAttribute("x", sx);
+        clone.setAttribute("y", sy);
+        clone.setAttribute("width", sr.width);
+        clone.setAttribute("height", sr.height);
+        clone.removeAttribute("class");
+        clone.style.maxWidth = "none";
+        cardG.appendChild(clone);
+      } else {
+        const noData = fig.querySelector("div");
+        if (noData) {
+          const nr = noData.getBoundingClientRect();
+          const nt = document.createElementNS(SVG_NS, "text");
+          nt.setAttribute("x", fx + nr.width / 2);
+          nt.setAttribute("y", (nr.top - cr.top) + nr.height / 2);
+          nt.setAttribute("fill", captionColor);
+          nt.setAttribute("font-size", 11);
+          nt.setAttribute("text-anchor", "middle");
+          nt.setAttribute("font-style", "italic");
+          nt.textContent = noData.textContent.trim();
+          cardG.appendChild(nt);
+        }
+      }
+    }
+
+    svg.appendChild(cardG);
+  }
+
+  const ymd = new Date().toLocaleDateString("sv-SE");
+  return downloadSvgAsPng(svg, `trend_${ymd}.png`);
+}
+
+document.getElementById("trend-capture-btn").addEventListener("click", () => {
+  captureTrendGrid().catch(err => console.error("PNG 저장 실패:", err));
+});
+
+function renderAll() {
+  renderDrawer();
+  renderTrendGrid();
+}
+
+renderAll();
+</script>
+</body>
+</html>

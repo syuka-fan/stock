@@ -1,0 +1,157 @@
+name: Weekly data update
+
+# 트리거:
+#   - 수동: workflow_dispatch (Actions 탭에서 Run workflow)
+#   - 자동: 매주 토요일 12:00 KST = 03:00 UTC
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 6'
+
+# 스케줄과 수동 dispatch 가 겹치면 큐잉 (취소하지 않음).
+# 데이터 파이프라인은 부분 결과로 main 에 푸시되면 곤란하므로 cancel-in-progress=false.
+concurrency:
+  group: weekly-update
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # 브랜치 푸시
+      pull-requests: write     # gh pr create
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 커밋/PR/브랜치명에서 같은 KST 타임스탬프를 재사용하기 위해 한 번만 캡처.
+      - name: Capture KST timestamp
+        id: stamp
+        run: |
+          STAMP=$(TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M')
+          BRANCH_SUFFIX=$(TZ='Asia/Seoul' date '+%Y%m%d-%H%M')
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          echo "branch=auto/update-$BRANCH_SUFFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Download data
+        run: python download.py
+
+      # 게이트: 분석/PR/빌드/배포를 진행할지 결정.
+      #   should_run = (download 가 워킹트리에 변화를 만듦) OR (출력 디렉터리 중 하나라도 빔)
+      # set +e 는 이 스텝 한정 — [ ! -d ] / [ -z ] 같은 비-0 종료가 errexit 으로 워크플로우를 깨지 않게.
+      - name: Evaluate gate
+        id: gate
+        run: |
+          set +e
+          DL_CHANGED=false
+          [ -n "$(git status --porcelain)" ] && DL_CHANGED=true
+
+          DIRS_EMPTY=false
+          EMPTY_DIR=""
+          for d in corr_all corr_recent direction_all direction_recent; do
+            if [ ! -d "$d" ] || [ -z "$(ls -A "$d" 2>/dev/null)" ]; then
+              DIRS_EMPTY=true
+              EMPTY_DIR="$d"
+              break
+            fi
+          done
+
+          if [ "$DL_CHANGED" = "true" ] || [ "$DIRS_EMPTY" = "true" ]; then
+            echo "게이트 통과 (download_changed=$DL_CHANGED, empty_dir=${EMPTY_DIR:-none})"
+            echo "should_run=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "게이트 미충족 — 분석/PR/빌드/배포 모두 스킵"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # correlation/direction 은 download.py 결과만 읽고 서로 다른 디렉터리에 쓰므로 안전하게 병렬화.
+      # set +e 로 errexit 끄고 두 PID 종료코드 수동 검증 — 한쪽이 먼저 실패해도 다른 쪽 로그 확보.
+      - name: Run analyses in parallel
+        if: steps.gate.outputs.should_run == 'true'
+        run: |
+          set +e
+          python correlation_analysis.py > corr.log 2>&1 &
+          PID1=$!
+          python direction_analysis.py   > direction.log 2>&1 &
+          PID2=$!
+          wait $PID1; RC1=$?
+          wait $PID2; RC2=$?
+          echo "===== correlation_analysis.py (rc=$RC1) ====="
+          cat corr.log
+          echo "===== direction_analysis.py (rc=$RC2) ====="
+          cat direction.log
+          if [ $RC1 -ne 0 ] || [ $RC2 -ne 0 ]; then
+            echo "분석 실패 — 커밋/배포 건너뜀"
+            exit 1
+          fi
+
+      # 게이트를 통과했으므로 분석 출력 변경이 보장됨:
+      #   - download 가 새 행 추가 → 분석 출력 재계산되어 diff
+      #   - 빈 디렉터리 채워짐 → 신규 파일로 diff
+      # 따라서 별도 git status 재검사 없이 바로 PR 생성·머지.
+      - name: Open PR and merge
+        if: steps.gate.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAMP:  ${{ steps.stamp.outputs.stamp }}
+          BRANCH: ${{ steps.stamp.outputs.branch }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "$STAMP upload"
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "$STAMP upload" \
+            --body  "Automated weekly data update."
+          # --subject 로 squash 커밋 제목을 PR 번호 없이 깔끔하게 고정.
+          gh pr merge "$BRANCH" --squash --delete-branch \
+            --subject "$STAMP upload" --body ""
+
+      # 머지된 main 으로 워킹트리 동기화 — build_index.py 가 최종 상태에서 실행되도록.
+      - name: Sync to merged main
+        if: steps.gate.outputs.should_run == 'true'
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+
+      - name: Build index.html
+        if: steps.gate.outputs.should_run == 'true'
+        run: python build_index.py
+
+      # actions/upload-pages-artifact 는 디렉터리를 요구하므로 _site/ 로 옮긴다.
+      - name: Stage Pages artifact
+        if: steps.gate.outputs.should_run == 'true'
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+
+      - name: Upload Pages artifact
+        if: steps.gate.outputs.should_run == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: update-data
+    if: needs.update-data.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
