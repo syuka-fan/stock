@@ -61,5 +61,13 @@
     "^HSI":      ["항셍",            "yfinance"],
     "000001.SS": ["상하이종합",  "yfinance"],
     "^TWII":     ["대만가권",        "yfinance"]
+  },
+  "luxury": {
+    "RMS.PA":    "에르메스",
+    "MC.PA":     "LVMH",
+    "KER.PA":    "케어링",
+    "1913.HK":   "프라다",
+    "456250.KS": "유럽명품 TOP10",
+    "LUXU.L":    "S&P 글로벌 럭셔리"
   }
 }

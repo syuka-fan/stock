@@ -511,5 +511,23 @@
     "last_date": "2026-05-22",
     "rows": 7078,
     "updated_at": "2026-05-23T21:45:53+09:00"
+  },
+  "456250.KS": {
+    "description": "유럽명품 TOP10",
+    "category": "luxury",
+    "source": "yfinance",
+    "out_path": "luxury_daily/456250.KS.csv",
+    "last_date": "2026-05-28",
+    "rows": 732,
+    "updated_at": "2026-05-29T02:30:04+09:00"
+  },
+  "LUXU.L": {
+    "description": "S&P 글로벌 럭셔리",
+    "category": "luxury",
+    "source": "yfinance",
+    "out_path": "luxury_daily/LUXU.L.csv",
+    "last_date": "2026-05-28",
+    "rows": 3099,
+    "updated_at": "2026-05-29T02:30:04+09:00"
   }
 }

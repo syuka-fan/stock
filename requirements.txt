@@ -5,3 +5,6 @@ finance-datareader==0.9.202
 # 분석 (correlation_analysis.py, direction_analysis.py)
 pandas==3.0.3
 numpy==2.4.6
+
+# PWA 아이콘 PNG 래스터화 (build_index.py)
+Pillow==12.2.0

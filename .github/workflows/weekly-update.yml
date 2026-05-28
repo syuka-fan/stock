@@ -57,7 +57,7 @@ jobs:
 
           DIRS_EMPTY=false
           EMPTY_DIR=""
-          for d in corr_all corr_recent direction_all direction_recent; do
+          for d in corr_all corr_recent direction_all direction_recent luxury_daily; do
             if [ ! -d "$d" ] || [ -z "$(ls -A "$d" 2>/dev/null)" ]; then
               DIRS_EMPTY=true
               EMPTY_DIR="$d"
@@ -73,8 +73,9 @@ jobs:
             echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # correlation/direction 은 download.py 결과만 읽고 서로 다른 디렉터리에 쓰므로 안전하게 병렬화.
-      # set +e 로 errexit 끄고 두 PID 종료코드 수동 검증 — 한쪽이 먼저 실패해도 다른 쪽 로그 확보.
+      # correlation/direction/luxury 는 download.py 결과만 읽고 서로 다른 출력에 쓰므로 안전하게 병렬화.
+      #   - luxury_trend.py 는 luxury_daily/ 만 읽고 luxury_trend.json 만 쓴다 (corr/direction 출력과 무충돌).
+      # set +e 로 errexit 끄고 세 PID 종료코드 수동 검증 — 한쪽이 먼저 실패해도 나머지 로그 확보.
       - name: Run analyses in parallel
         if: steps.gate.outputs.should_run == 'true'
         run: |
@@ -83,13 +84,18 @@ jobs:
           PID1=$!
           python direction_analysis.py   > direction.log 2>&1 &
           PID2=$!
+          python luxury_trend.py          > luxury.log 2>&1 &
+          PID3=$!
           wait $PID1; RC1=$?
           wait $PID2; RC2=$?
+          wait $PID3; RC3=$?
           echo "===== correlation_analysis.py (rc=$RC1) ====="
           cat corr.log
           echo "===== direction_analysis.py (rc=$RC2) ====="
           cat direction.log
-          if [ $RC1 -ne 0 ] || [ $RC2 -ne 0 ]; then
+          echo "===== luxury_trend.py (rc=$RC3) ====="
+          cat luxury.log
+          if [ $RC1 -ne 0 ] || [ $RC2 -ne 0 ] || [ $RC3 -ne 0 ]; then
             echo "분석 실패 — 커밋/배포 건너뜀"
             exit 1
           fi
@@ -135,6 +141,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
+          cp manifest.webmanifest _site/
 
       - name: Upload Pages artifact
         if: steps.gate.outputs.should_run == 'true'

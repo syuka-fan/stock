@@ -21,7 +21,7 @@ import pandas as pd
 import yfinance as yf
 import FinanceDataReader as fdr
 
-from common import BASE_DIR, INDEX_DIR, KR_DIR, US_DIR, load_symbols_raw
+from common import BASE_DIR, INDEX_DIR, KR_DIR, LUXURY_DIR, US_DIR, load_symbols_raw
 
 
 STATE_PATH = BASE_DIR / "download_state.json"
@@ -31,12 +31,13 @@ OVERLAP_DAYS = 7   # 제공사 사후 보정·지연 데이터 재흡수용 버�
 SLEEP_SEC = 0.3    # yfinance 레이트리밋 회피 (낮추면 차단 위험)
 
 
-def load_symbols() -> tuple[dict[str, str], dict[str, str], dict[str, tuple[str, str]]]:
+def load_symbols() -> tuple[dict[str, str], dict[str, str], dict[str, str], dict[str, tuple[str, str]]]:
     data = load_symbols_raw()
     us = dict(data["us"])
     kr = dict(data["kr"])
+    luxury = dict(data["luxury"])
     index = {k: (v[0], v[1]) for k, v in data["index"].items()}
-    return us, kr, index
+    return us, kr, luxury, index
 
 
 def fetch_yf(ticker: str, start: str) -> pd.DataFrame | None:
@@ -177,6 +178,7 @@ def process(
 def build_jobs(
     us_symbols: dict[str, str],
     kr_symbols: dict[str, str],
+    luxury_symbols: dict[str, str],
     index_symbols: dict[str, tuple[str, str]],
 ) -> list[tuple[str, str, str, str, Path]]:
     jobs: list[tuple[str, str, str, str, Path]] = []
@@ -184,6 +186,8 @@ def build_jobs(
         jobs.append((t, d, "us", "yfinance", US_DIR))
     for t, d in kr_symbols.items():
         jobs.append((t, d, "kr", "fdr", KR_DIR))
+    for t, d in luxury_symbols.items():
+        jobs.append((t, d, "luxury", "yfinance", LUXURY_DIR))
     for t, (d, src) in index_symbols.items():
         jobs.append((t, d, "index", src, INDEX_DIR))
     return jobs
@@ -191,8 +195,8 @@ def build_jobs(
 
 def main() -> None:
     state = load_state()
-    us_symbols, kr_symbols, index_symbols = load_symbols()
-    jobs = build_jobs(us_symbols, kr_symbols, index_symbols)
+    us_symbols, kr_symbols, luxury_symbols, index_symbols = load_symbols()
+    jobs = build_jobs(us_symbols, kr_symbols, luxury_symbols, index_symbols)
     print(f"총 {len(jobs)} 티커 처리\n")
 
     counts = {"ok": 0, "unchanged": 0, "empty": 0, "fail": 0}

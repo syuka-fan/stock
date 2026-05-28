@@ -18,6 +18,7 @@ SYMBOLS_PATH    = BASE_DIR / "symbols.json"
 INDEX_DIR       = BASE_DIR / "index"
 KR_DIR          = BASE_DIR / "kr_daily"
 US_DIR          = BASE_DIR / "us_daily"
+LUXURY_DIR      = BASE_DIR / "luxury_daily"
 CORR_ALL_DIR    = BASE_DIR / "corr_all"
 CORR_RECENT_DIR = BASE_DIR / "corr_recent"
 DIR_ALL         = BASE_DIR / "direction_all"
@@ -26,9 +27,9 @@ DIR_RECENT      = BASE_DIR / "direction_recent"
 # safe_filename / stem_to_label 의 파싱 규칙과 결합되어 있음.
 # 형식("[XX] ") 을 바꾸면 두 함수의 split 로직도 함께 수정 필요.
 LABEL_PREFIXES = {
-    "index": "[IDX] ",
-    "kr":    "[KR] ",
-    "us":    "[US] ",
+    "index":  "[IDX] ",
+    "kr":     "[KR] ",
+    "us":     "[US] ",
 }
 
 
@@ -75,7 +76,7 @@ def load_symbols_raw() -> dict:
 
 
 def load_symbol_names() -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
-    """symbols.json 을 (index, kr, us) 이름 dict 세 개로 평탄화.
+    """symbols.json 을 (index, kr, us) 이름 dict 네 개로 평탄화.
 
     index 항목은 원본에서 [이름, 티커] 튜플이라 첫 요소만 추출.
     raw 데이터(티커 포함)가 필요하면 load_symbols_raw 를 직접 호출할 것.

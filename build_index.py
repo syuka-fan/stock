@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import csv
 from datetime import date
 from pathlib import Path
+
+from PIL import Image, ImageDraw
 
 from common import (
     BASE_DIR,
@@ -25,6 +28,8 @@ from common import (
 SUMMARY_PATH = DIR_ALL / "_summary.csv"
 TEMPLATE_PATH = BASE_DIR / "template.html"
 OUTPUT_PATH = BASE_DIR / "index.html"
+MANIFEST_PATH = BASE_DIR / "manifest.webmanifest"
+LUXURY_TREND_PATH = BASE_DIR / "luxury_trend.json"
 
 
 def pick_corr_months(today_month: int) -> tuple[int, int, int]:
@@ -185,6 +190,18 @@ def read_recent_csv(path: Path, target_months: set[int]) -> tuple[str, list[dict
 
 
 
+def load_luxury_trend() -> dict:
+    """luxury_trend.py 산출물을 그대로 읽어 payload 에 통과시킨다.
+
+    luxury 계산 로직은 luxury_trend.py 에만 존재하며, 여기선 완성된 JSON 을
+    임베드만 한다 (분석 파이프라인 비통합 원칙 유지). 파일이 없으면 빈 dict.
+    """
+    if not LUXURY_TREND_PATH.exists():
+        print("[경고] luxury_trend.json 없음 — luxury 데이터 없이 빌드")
+        return {}
+    return json.loads(LUXURY_TREND_PATH.read_text(encoding="utf-8"))
+
+
 def build_payload() -> dict:
     today = date.today()
 
@@ -215,7 +232,7 @@ def build_payload() -> dict:
         if rows_all:
             all_chart = {
                 "type": "band",
-                "shade_low_sample": False,
+                "shade_low_sample": True,
                 "mode_label": None,
                 "rows": rows_all,
             }
@@ -258,6 +275,7 @@ def build_payload() -> dict:
             "default_order": default_order,
             "tickers": tickers,
         },
+        "luxury": load_luxury_trend(),
     }
 
 
@@ -280,50 +298,86 @@ ALL_MARKERS = (
 HEAD_REVALIDATE_BUDGET_BYTES = 2048
 
 
-def build_pwa_data_uris() -> tuple[str, str]:
-    """apple-touch-icon 과 manifest 를 data URI 로 생성."""
-    icon_svg = (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">'
-        '<rect width="512" height="512" rx="104" fill="#2563eb"/>'
-        '<text x="256" y="360" text-anchor="middle" font-size="320" '
-        'font-family="apple-system,Segoe UI Emoji,sans-serif">📊</text>'
-        '</svg>'
-    )
-    apple_icon_svg = (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">'
-        '<rect width="180" height="180" rx="36" fill="#2563eb"/>'
-        '<text x="90" y="125" text-anchor="middle" font-size="110" '
-        'font-family="apple-system,Segoe UI Emoji,sans-serif">📊</text>'
-        '</svg>'
-    )
-    icon_b64 = base64.b64encode(icon_svg.encode("utf-8")).decode("ascii")
-    apple_b64 = base64.b64encode(apple_icon_svg.encode("utf-8")).decode("ascii")
+# 아이콘 색. theme_color 와 동일한 파랑 배경에 흰 막대그래프.
+ICON_BG = "#2563eb"
+ICON_FG = "#ffffff"
+# 막대 높이 비율(좌→우). 데이터가 오르내리는 추세 느낌.
+ICON_BAR_HEIGHTS = (0.45, 0.72, 0.55, 0.95)
 
+
+def _render_icon(size: int, *, square: bool, content_frac: float) -> bytes:
+    """막대그래프 아이콘을 PNG 바이트로 렌더.
+
+    emoji <text> 는 OS 가 아이콘을 래스터화할 때 emoji 폰트에 의존해 깨지므로
+    벡터 도형(rect)으로 직접 그린다. 4x 슈퍼샘플 후 LANCZOS 다운스케일로 안티에일리어싱.
+
+    square=True  : 배경을 캔버스 전체로 채움 (maskable / apple-touch — OS 가 모양을 클리핑).
+    square=False : iOS 풍 라운드 코너 (마스킹되지 않고 그대로 보이는 'any' 용).
+    content_frac : 막대가 차지하는 중앙 영역 비율. maskable 은 안전영역(중앙 원) 안에 들도록 작게.
+    """
+    ss = 4
+    px = size * ss
+    img = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    if square:
+        draw.rectangle([0, 0, px - 1, px - 1], fill=ICON_BG)
+    else:
+        draw.rounded_rectangle([0, 0, px - 1, px - 1], radius=int(px * 0.22), fill=ICON_BG)
+
+    margin = px * (1 - content_frac) / 2
+    area = px - 2 * margin
+    base_y = margin + area
+    n = len(ICON_BAR_HEIGHTS)
+    gap = area * 0.06
+    bar_w = (area - gap * (n - 1)) / n
+    for i, h in enumerate(ICON_BAR_HEIGHTS):
+        x0 = margin + i * (bar_w + gap)
+        y0 = base_y - area * h
+        draw.rectangle([x0, y0, x0 + bar_w, base_y], fill=ICON_FG)
+
+    img = img.resize((size, size), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+def _png_data_uri(png_bytes: bytes) -> str:
+    return f"data:image/png;base64,{base64.b64encode(png_bytes).decode('ascii')}"
+
+
+def build_pwa_assets() -> tuple[str, str]:
+    """(apple-touch-icon data URI, manifest JSON 문자열) 생성.
+
+    PNG 래스터 아이콘(192/512 any, 512 maskable)을 manifest 에 임베드한다.
+    SVG/emoji 만 제공하면 Android Chrome 이 설치 시 앱 이름 첫 글자로
+    아이콘을 자동 생성(글자 폴백)하므로 PNG 가 필수.
+    """
     manifest = {
         "name": "데이터 기반 종목 분석",
         "short_name": "종목 분석",
+        # start_url/scope 는 manifest 파일 위치 기준 상대경로로 해석된다.
+        # (과거 data: URI manifest 에선 기준 URL 이 없어 해석이 깨졌음)
         "start_url": "./index.html",
         "scope": "./",
         "display": "standalone",
         "background_color": "#ffffff",
         "theme_color": "#2563eb",
-        "icons": [{
-            "src": f"data:image/svg+xml;base64,{icon_b64}",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "any maskable",
-        }],
+        "icons": [
+            {"src": _png_data_uri(_render_icon(192, square=False, content_frac=0.62)),
+             "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": _png_data_uri(_render_icon(512, square=False, content_frac=0.62)),
+             "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": _png_data_uri(_render_icon(512, square=True, content_frac=0.55)),
+             "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
     }
-    manifest_b64 = base64.b64encode(
-        json.dumps(manifest, ensure_ascii=False).encode("utf-8")
-    ).decode("ascii")
-
-    apple_data_uri = f"data:image/svg+xml;base64,{apple_b64}"
-    manifest_data_uri = f"data:application/manifest+json;base64,{manifest_b64}"
-    return apple_data_uri, manifest_data_uri
+    manifest_json = json.dumps(manifest, ensure_ascii=False, indent=2)
+    apple_data_uri = _png_data_uri(_render_icon(180, square=True, content_frac=0.6))
+    return apple_data_uri, manifest_json
 
 
-def pwa_head_block(apple_data_uri: str, manifest_data_uri: str) -> str:
+def pwa_head_block(apple_data_uri: str) -> str:
     return (
         '<meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">\n'
         '<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">\n'
@@ -331,7 +385,7 @@ def pwa_head_block(apple_data_uri: str, manifest_data_uri: str) -> str:
         '<meta name="apple-mobile-web-app-status-bar-style" content="default">\n'
         '<meta name="apple-mobile-web-app-title" content="종목 분석">\n'
         f'<link rel="apple-touch-icon" href="{apple_data_uri}">\n'
-        f'<link rel="manifest" href="{manifest_data_uri}">'
+        '<link rel="manifest" href="./manifest.webmanifest">'
     )
 
 
@@ -424,15 +478,14 @@ def replace_once(content: str, old: str, new: str, label: str) -> str:
     return content.replace(old, new, 1)
 
 
-def _inject_head_markers(content: str, payload: dict) -> str:
-    apple_data_uri, manifest_data_uri = build_pwa_data_uris()
+def _inject_head_markers(content: str, payload: dict, apple_data_uri: str) -> str:
     built_at_meta = f'<meta name="app-built-at" content="{payload["built_at"]}">'
 
     content = replace_once(content,
         "<!-- {{BUILT_AT_META}} -->", built_at_meta, "BUILT_AT_META")
     content = replace_once(content,
         "<!-- {{PWA_HEAD}} -->",
-        pwa_head_block(apple_data_uri, manifest_data_uri), "PWA_HEAD")
+        pwa_head_block(apple_data_uri), "PWA_HEAD")
     content = replace_once(content,
         "<!-- {{PWA_SW_SOURCE}} -->", SW_SOURCE_BLOCK, "PWA_SW_SOURCE")
     content = replace_once(content,
@@ -503,18 +556,23 @@ def main() -> int:
     # Windows 에서 편집된 template 의 CRLF 가 섞이면 replace_once 가 0회 매칭으로 실패한다.
     content = raw.replace("\r\n", "\n").replace("\r", "\n")
 
-    content = _inject_head_markers(content, payload)
+    apple_data_uri, manifest_json = build_pwa_assets()
+    content = _inject_head_markers(content, payload, apple_data_uri)
     content = _inject_payload_script(content, payload)
     _verify_output(content)
 
     # newline="\n" 은 LF 출력 보장 (write_text 가 플랫폼 기본 줄바꿈으로 재변환하는 것을 차단).
     OUTPUT_PATH.write_text(content, encoding="utf-8", newline="\n")
+    # manifest 는 별도 파일로 출력해야 내부 상대경로(start_url/scope)가 정상 해석된다.
+    # index.html 과 같은 디렉터리에 두고, 배포 시 함께 업로드돼야 한다 (weekly-update.yml).
+    MANIFEST_PATH.write_text(manifest_json, encoding="utf-8", newline="\n")
 
     print(f"생성 완료: {OUTPUT_PATH}")
     print(f"  · 크기: {len(raw):,} -> {len(content):,} bytes")
     print(f"  · payload built_at: {payload['built_at']}")
     print(f"  · 트렌드 티커: {len(payload['trend']['tickers'])}개")
     print(f"  · 상관관계 서브탭: {', '.join(payload['corr']['tab_keys'])}")
+    print(f"  · manifest: {MANIFEST_PATH.name}")
     return 0
 
 

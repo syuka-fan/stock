@@ -20,13 +20,15 @@
     컬럼/종목 추가·제거 시 해당 소비자 영향도 함께 검토할 것.
 
 멱등성
-    ``corr_recent/`` 의 컷오프가 실행일(today) 기준이라 실행한 날짜에 따라 결과가 달라진다.
+    ``corr_recent/`` 의 컷오프와 상장기간 필터(MIN_LISTING_YEARS)가 모두 실행일(today) 기준이라
+    실행한 날짜에 따라 결과(특히 경계에 걸친 신규 종목 포함 여부)가 달라진다.
     같은 분석을 재현하려면 실행 날짜를 같이 기록해 둘 것.
 
 자주 조정하는 노브
-    * COLUMN_ORDER : 행/열 순서 (의도된 그룹핑 있음 — 헤더 주석 참조)
-    * RECENT_YEARS : '최근' 기간 길이
-    * scale_frame  : 정규화 방식
+    * COLUMN_ORDER      : 행/열 순서 (의도된 그룹핑 있음 — 헤더 주석 참조)
+    * RECENT_YEARS      : '최근' 기간 길이
+    * MIN_LISTING_YEARS : 상장(데이터 시작) 후 이 기간 미만이면 종목 자체를 제외
+    * scale_frame       : 정규화 방식
 
 사용법:
     python correlation_analysis.py
@@ -53,6 +55,13 @@ from common import (
 # WHY: 너무 먼 과거의 영향을 줄이고 '최근 시장 흐름' 의 상관관계를 분리해서 보기 위함.
 #      임의 값이 아니라 분석 의도가 들어 있는 값 — 바꿀 때는 의도(최근 기간 정의)를 다시 합의할 것.
 RECENT_YEARS = 3
+
+# 상장(=데이터 시작) 후 N년이 안 된 종목은 상관계수에서 제외.
+# WHY: 데이터 기간이 짧으면 표본이 부족해 상관계수 신뢰도가 낮음.
+# 주의: 상장일 정보가 없어 'CSV 첫 거래일' 을 상장일 대용치로 사용. 신규 상장 구간에선 정확하고,
+#       오래된 종목은 데이터 소스 시작일 한계가 있으나 어차피 기준을 넘으므로 영향 없음.
+# RECENT_YEARS 와 값이 같아도 의미가 다르다(최근 분석창 길이 vs 최소 상장기간) — 별도 상수로 둠.
+MIN_LISTING_YEARS = 3
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -161,6 +170,25 @@ def reorder_columns(frame: pd.DataFrame, order: list[str]) -> pd.DataFrame:
     return frame[available + leftovers]
 
 
+def filter_by_listing(frame: pd.DataFrame, cutoff: pd.Timestamp) -> pd.DataFrame:
+    """첫 거래일이 ``cutoff`` 이후인(=상장 기간이 짧은) 컬럼을 제외.
+
+    상장일 대용치로 컬럼별 첫 유효(non-NaN) 날짜를 사용 — 자세한 배경은 MIN_LISTING_YEARS 주석 참조.
+    부수효과: 제외된 종목을 stdout 에 알림 (reorder_columns 와 동일 정책 — 배치 로그에서 빨리 확인).
+    """
+    keep, dropped = [], []
+    for col in frame.columns:
+        first = frame[col].first_valid_index()
+        if first is not None and first <= cutoff:
+            keep.append(col)
+        else:
+            dropped.append((col, first))
+    for col, first in dropped:
+        when = first.date() if first is not None else "데이터없음"
+        print(f"[알림] 상장 {MIN_LISTING_YEARS}년 미만 제외: {col} (시작 {when})")
+    return frame[keep]
+
+
 def scale_frame(frame: pd.DataFrame) -> pd.DataFrame:
     """컬럼별 MinMax 정규화로 [-1, 1] 범위에 매핑 (NaN-safe).
 
@@ -217,14 +245,19 @@ def analyze_monthly(scaled: pd.DataFrame, out_dir: Path) -> None:
 def main() -> None:
     reconfigure_stdio_utf8()
 
-    recent_cutoff = pd.Timestamp.today().normalize() - pd.DateOffset(years=RECENT_YEARS)
+    today = pd.Timestamp.today().normalize()
+    recent_cutoff = today - pd.DateOffset(years=RECENT_YEARS)
+    listing_cutoff = today - pd.DateOffset(years=MIN_LISTING_YEARS)
     print(f"최근 컷오프: {recent_cutoff.date()} 이후 데이터를 {CORR_RECENT_DIR.name}/에 저장")
+    print(f"상장 컷오프: {listing_cutoff.date()} 이후 시작한 종목은 제외 (상장 {MIN_LISTING_YEARS}년 미만)")
 
     index_names, kr_names, us_names = load_symbol_names()
     print(f"지수 {len(index_names)}개, 한국 {len(kr_names)}개, 미국 {len(us_names)}개")
 
     frame = build_close_frame(index_names, kr_names, us_names)
+    # 순서 → 필터 순서 주의: 먼저 거르면 제외 종목이 reorder 에서 '데이터에 없음' 으로 잘못 찍힌다.
     frame = reorder_columns(frame, COLUMN_ORDER)
+    frame = filter_by_listing(frame, listing_cutoff)
     print(f"통합 데이터 shape: {frame.shape}")
     print(f"기간: {frame.index.min().date()} ~ {frame.index.max().date()}")
     print(f"종목 수: {len(frame.columns)}")
