@@ -2,11 +2,11 @@ name: Weekly data update
 
 # 트리거:
 #   - 수동: workflow_dispatch (Actions 탭에서 Run workflow)
-#   - 자동: 매주 토요일 12:00 KST = 03:00 UTC
+#   - 자동: 매주 토요일 12:15 KST = 03:15 UTC
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 6'
+    - cron: '15 3 * * 6'
 
 # 스케줄과 수동 dispatch 가 겹치면 큐잉 (취소하지 않음).
 # 데이터 파이프라인은 부분 결과로 main 에 푸시되면 곤란하므로 cancel-in-progress=false.
