@@ -526,36 +526,36 @@
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/LUXU.L.csv",
-    "last_date": "2026-07-02",
-    "rows": 3124,
-    "updated_at": "2026-07-03T07:01:57+00:00"
+    "last_date": "2026-07-03",
+    "rows": 3125,
+    "updated_at": "2026-07-04T06:28:29+00:00"
   },
   "RMS.PA": {
     "description": "에르메스",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/RMS.PA.csv",
-    "last_date": "2026-07-02",
-    "rows": 6808,
-    "updated_at": "2026-07-03T07:01:54+00:00"
+    "last_date": "2026-07-03",
+    "rows": 6809,
+    "updated_at": "2026-07-04T06:28:26+00:00"
   },
   "MC.PA": {
     "description": "LVMH",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/MC.PA.csv",
-    "last_date": "2026-07-02",
-    "rows": 6808,
-    "updated_at": "2026-07-03T07:01:55+00:00"
+    "last_date": "2026-07-03",
+    "rows": 6809,
+    "updated_at": "2026-07-04T06:28:27+00:00"
   },
   "KER.PA": {
     "description": "케어링",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/KER.PA.csv",
-    "last_date": "2026-07-02",
-    "rows": 6808,
-    "updated_at": "2026-07-03T07:01:56+00:00"
+    "last_date": "2026-07-03",
+    "rows": 6809,
+    "updated_at": "2026-07-04T06:28:27+00:00"
   },
   "1913.HK": {
     "description": "프라다",
