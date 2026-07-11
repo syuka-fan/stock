@@ -4,647 +4,647 @@
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/SPY.csv",
-    "last_date": "2026-07-02",
-    "rows": 8413,
-    "updated_at": "2026-07-03T07:00:57+00:00"
+    "last_date": "2026-07-10",
+    "rows": 8418,
+    "updated_at": "2026-07-11T05:48:05+00:00"
   },
   "IWM": {
     "description": "러셀",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/IWM.csv",
-    "last_date": "2026-07-02",
-    "rows": 6563,
-    "updated_at": "2026-07-03T07:00:57+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6568,
+    "updated_at": "2026-07-11T05:48:05+00:00"
   },
   "VTI": {
     "description": "미국 전체",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/VTI.csv",
-    "last_date": "2026-07-02",
-    "rows": 6298,
-    "updated_at": "2026-07-03T07:00:58+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6303,
+    "updated_at": "2026-07-11T05:48:06+00:00"
   },
   "QQQ": {
     "description": "나스닥",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/QQQ.csv",
-    "last_date": "2026-07-02",
-    "rows": 6871,
-    "updated_at": "2026-07-03T07:00:58+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6876,
+    "updated_at": "2026-07-11T05:48:06+00:00"
   },
   "TQQQ": {
     "description": "나스닥 레버리지",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/TQQQ.csv",
-    "last_date": "2026-07-02",
-    "rows": 4122,
-    "updated_at": "2026-07-03T07:00:59+00:00"
+    "last_date": "2026-07-10",
+    "rows": 4127,
+    "updated_at": "2026-07-11T05:48:07+00:00"
   },
   "SOXX": {
     "description": "미국 반도체",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/SOXX.csv",
-    "last_date": "2026-07-02",
-    "rows": 6279,
-    "updated_at": "2026-07-03T07:00:59+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6284,
+    "updated_at": "2026-07-11T05:48:07+00:00"
   },
   "TSLA": {
     "description": "테슬라",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/TSLA.csv",
-    "last_date": "2026-07-02",
-    "rows": 4027,
-    "updated_at": "2026-07-03T07:01:00+00:00"
+    "last_date": "2026-07-10",
+    "rows": 4032,
+    "updated_at": "2026-07-11T05:48:08+00:00"
   },
   "NVDA": {
     "description": "엔비디아",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/NVDA.csv",
-    "last_date": "2026-07-02",
-    "rows": 6903,
-    "updated_at": "2026-07-03T07:01:00+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6908,
+    "updated_at": "2026-07-11T05:48:08+00:00"
   },
   "MSFT": {
     "description": "마이크로소프트",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/MSFT.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:01+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:09+00:00"
   },
   "AAPL": {
     "description": "애플",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/AAPL.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:01+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:09+00:00"
   },
   "MU": {
     "description": "마이크론",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/MU.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:02+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:10+00:00"
   },
   "GOOGL": {
     "description": "구글",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/GOOGL.csv",
-    "last_date": "2026-07-02",
-    "rows": 5502,
-    "updated_at": "2026-07-03T07:01:02+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5507,
+    "updated_at": "2026-07-11T05:48:10+00:00"
   },
   "AVGO": {
     "description": "브로드컴",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/AVGO.csv",
-    "last_date": "2026-07-02",
-    "rows": 4252,
-    "updated_at": "2026-07-03T07:01:03+00:00"
+    "last_date": "2026-07-10",
+    "rows": 4257,
+    "updated_at": "2026-07-11T05:48:11+00:00"
   },
   "INTC": {
     "description": "인텔",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/INTC.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:03+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:12+00:00"
   },
   "AMD": {
     "description": "AMD",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/AMD.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:04+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:12+00:00"
   },
   "QCOM": {
     "description": "퀄컴",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/QCOM.csv",
-    "last_date": "2026-07-02",
-    "rows": 8698,
-    "updated_at": "2026-07-03T07:01:04+00:00"
+    "last_date": "2026-07-10",
+    "rows": 8703,
+    "updated_at": "2026-07-11T05:48:13+00:00"
   },
   "SNDK": {
     "description": "샌디스크",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/SNDK.csv",
-    "last_date": "2026-07-02",
-    "rows": 347,
-    "updated_at": "2026-07-03T07:01:05+00:00"
+    "last_date": "2026-07-10",
+    "rows": 352,
+    "updated_at": "2026-07-11T05:48:13+00:00"
   },
   "STX": {
     "description": "시게이트",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/STX.csv",
-    "last_date": "2026-07-02",
-    "rows": 5926,
-    "updated_at": "2026-07-03T07:01:05+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5931,
+    "updated_at": "2026-07-11T05:48:13+00:00"
   },
   "WDC": {
     "description": "웨스턴디지털",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/WDC.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:06+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:14+00:00"
   },
   "WMT": {
     "description": "월마트",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/WMT.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:06+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:15+00:00"
   },
   "KO": {
     "description": "코카콜라",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/KO.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:08+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:48:16+00:00"
   },
   "EZPW": {
     "description": "이즈코프",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/EZPW.csv",
-    "last_date": "2026-07-02",
-    "rows": 8774,
-    "updated_at": "2026-07-03T07:01:09+00:00"
+    "last_date": "2026-07-10",
+    "rows": 8779,
+    "updated_at": "2026-07-11T05:48:18+00:00"
   },
   "ZETA": {
     "description": "제타",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/ZETA.csv",
-    "last_date": "2026-07-02",
-    "rows": 1271,
-    "updated_at": "2026-07-03T07:01:10+00:00"
+    "last_date": "2026-07-10",
+    "rows": 1276,
+    "updated_at": "2026-07-11T05:48:18+00:00"
   },
   "EWY": {
     "description": "한국 추종 ETF",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/EWY.csv",
-    "last_date": "2026-07-02",
-    "rows": 6573,
-    "updated_at": "2026-07-03T07:01:10+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6578,
+    "updated_at": "2026-07-11T05:48:19+00:00"
   },
   "GLD": {
     "description": "금",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/GLD.csv",
-    "last_date": "2026-07-02",
-    "rows": 5438,
-    "updated_at": "2026-07-03T07:01:11+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5443,
+    "updated_at": "2026-07-11T05:48:19+00:00"
   },
   "SLV": {
     "description": "은",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/SLV.csv",
-    "last_date": "2026-07-02",
-    "rows": 5076,
-    "updated_at": "2026-07-03T07:01:11+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5081,
+    "updated_at": "2026-07-11T05:48:20+00:00"
   },
   "USO": {
     "description": "미국 오일 펀드",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/USO.csv",
-    "last_date": "2026-07-02",
-    "rows": 5089,
-    "updated_at": "2026-07-03T07:01:12+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5094,
+    "updated_at": "2026-07-11T05:48:20+00:00"
   },
   "GSG": {
     "description": "원자재 펀드",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/GSG.csv",
-    "last_date": "2026-07-02",
-    "rows": 5018,
-    "updated_at": "2026-07-03T07:01:12+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5023,
+    "updated_at": "2026-07-11T05:48:20+00:00"
   },
   "0115D0": {
     "description": "KODEX 조선TOP10",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/0115D0.csv",
-    "last_date": "2026-07-03",
-    "rows": 168,
-    "updated_at": "2026-07-03T07:01:14+00:00"
+    "last_date": "2026-07-10",
+    "rows": 173,
+    "updated_at": "2026-07-11T05:48:22+00:00"
   },
   "487240": {
     "description": "KODEX AI전력핵심설비",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/487240.csv",
-    "last_date": "2026-07-03",
-    "rows": 482,
-    "updated_at": "2026-07-03T07:01:15+00:00"
+    "last_date": "2026-07-10",
+    "rows": 487,
+    "updated_at": "2026-07-11T05:48:23+00:00"
   },
   "305720": {
     "description": "KODEX 2차전지산업",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/305720.csv",
-    "last_date": "2026-07-03",
-    "rows": 1914,
-    "updated_at": "2026-07-03T07:01:17+00:00"
+    "last_date": "2026-07-10",
+    "rows": 1919,
+    "updated_at": "2026-07-11T05:48:25+00:00"
   },
   "091180": {
     "description": "KODEX 자동차",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/091180.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:19+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:27+00:00"
   },
   "139220": {
     "description": "TIGER 200 건설",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/139220.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:20+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:29+00:00"
   },
   "307510": {
     "description": "TIGER 의료기기",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/307510.csv",
-    "last_date": "2026-07-03",
-    "rows": 1878,
-    "updated_at": "2026-07-03T07:01:22+00:00"
+    "last_date": "2026-07-10",
+    "rows": 1883,
+    "updated_at": "2026-07-11T05:48:30+00:00"
   },
   "091230": {
     "description": "TIGER 반도체",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/091230.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:24+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:32+00:00"
   },
   "157500": {
     "description": "TIGER 증권",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/157500.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:26+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:34+00:00"
   },
   "143860": {
     "description": "TIGER 헬스케어",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/143860.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:28+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:36+00:00"
   },
   "091220": {
     "description": "TIGER 은행",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/091220.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:30+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:38+00:00"
   },
   "005930": {
     "description": "삼성전자",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/005930.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:31+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:40+00:00"
   },
   "000660": {
     "description": "SK하이닉스",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/000660.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:33+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:41+00:00"
   },
   "035420": {
     "description": "네이버",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/035420.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:35+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:43+00:00"
   },
   "035720": {
     "description": "카카오",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/035720.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:37+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:45+00:00"
   },
   "005380": {
     "description": "현대차",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/005380.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:39+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:47+00:00"
   },
   "034020": {
     "description": "두산에너빌리티",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/034020.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:41+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:49+00:00"
   },
   "064350": {
     "description": "현대로템",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/064350.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:43+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:50+00:00"
   },
   "066570": {
     "description": "LG전자",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/066570.csv",
-    "last_date": "2026-07-03",
-    "rows": 3028,
-    "updated_at": "2026-07-03T07:01:44+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3033,
+    "updated_at": "2026-07-11T05:48:52+00:00"
   },
   "278470": {
     "description": "에이피알",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/278470.csv",
-    "last_date": "2026-07-03",
-    "rows": 571,
-    "updated_at": "2026-07-03T07:01:47+00:00"
+    "last_date": "2026-07-10",
+    "rows": 576,
+    "updated_at": "2026-07-11T05:48:55+00:00"
   },
   "^GSPC": {
     "description": "S&P 500",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^GSPC.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:57+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:49:05+00:00"
   },
   "^IXIC": {
     "description": "NASDAQ",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^IXIC.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:58+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:49:05+00:00"
   },
   "^DJI": {
     "description": "다우 존스",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^DJI.csv",
-    "last_date": "2026-07-02",
-    "rows": 8686,
-    "updated_at": "2026-07-03T07:01:58+00:00"
+    "last_date": "2026-07-10",
+    "rows": 8691,
+    "updated_at": "2026-07-11T05:49:06+00:00"
   },
   "^RUT": {
     "description": "러셀 2000",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^RUT.csv",
-    "last_date": "2026-07-02",
-    "rows": 9192,
-    "updated_at": "2026-07-03T07:01:59+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9197,
+    "updated_at": "2026-07-11T05:49:06+00:00"
   },
   "^KS11": {
     "description": "KOSPI",
     "category": "index",
     "source": "fdr",
     "out_path": "index/^KS11.csv",
-    "last_date": "2026-07-03",
-    "rows": 7855,
-    "updated_at": "2026-07-03T07:01:59+00:00"
+    "last_date": "2026-07-10",
+    "rows": 7860,
+    "updated_at": "2026-07-11T05:49:07+00:00"
   },
   "^KQ11": {
     "description": "KOSDAQ",
     "category": "index",
     "source": "fdr",
     "out_path": "index/^KQ11.csv",
-    "last_date": "2026-07-03",
-    "rows": 7512,
-    "updated_at": "2026-07-03T07:02:00+00:00"
+    "last_date": "2026-07-10",
+    "rows": 7517,
+    "updated_at": "2026-07-11T05:49:07+00:00"
   },
   "^N225": {
     "description": "닛케이225",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^N225.csv",
-    "last_date": "2026-07-03",
-    "rows": 8957,
-    "updated_at": "2026-07-03T07:02:00+00:00"
+    "last_date": "2026-07-10",
+    "rows": 8962,
+    "updated_at": "2026-07-11T05:49:08+00:00"
   },
   "^HSI": {
     "description": "항셍",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^HSI.csv",
-    "last_date": "2026-07-03",
-    "rows": 9006,
-    "updated_at": "2026-07-03T07:02:01+00:00"
+    "last_date": "2026-07-10",
+    "rows": 9011,
+    "updated_at": "2026-07-11T05:49:08+00:00"
   },
   "000001.SS": {
     "description": "상하이종합",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/000001.SS.csv",
-    "last_date": "2026-07-03",
-    "rows": 7025,
-    "updated_at": "2026-07-03T07:02:01+00:00"
+    "last_date": "2026-07-10",
+    "rows": 7030,
+    "updated_at": "2026-07-11T05:49:09+00:00"
   },
   "^TWII": {
     "description": "대만가권",
     "category": "index",
     "source": "yfinance",
     "out_path": "index/^TWII.csv",
-    "last_date": "2026-07-03",
-    "rows": 7107,
-    "updated_at": "2026-07-03T07:02:02+00:00"
+    "last_date": "2026-07-09",
+    "rows": 7111,
+    "updated_at": "2026-07-11T05:49:09+00:00"
   },
   "456250.KS": {
     "description": "유럽명품 TOP10",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/456250.KS.csv",
-    "last_date": "2026-07-03",
-    "rows": 757,
-    "updated_at": "2026-07-03T07:01:57+00:00"
+    "last_date": "2026-07-10",
+    "rows": 762,
+    "updated_at": "2026-07-11T05:49:04+00:00"
   },
   "LUXU.L": {
     "description": "S&P 글로벌 럭셔리",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/LUXU.L.csv",
-    "last_date": "2026-07-03",
-    "rows": 3125,
-    "updated_at": "2026-07-04T06:28:29+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3130,
+    "updated_at": "2026-07-11T05:49:05+00:00"
   },
   "RMS.PA": {
     "description": "에르메스",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/RMS.PA.csv",
-    "last_date": "2026-07-03",
-    "rows": 6809,
-    "updated_at": "2026-07-04T06:28:26+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6814,
+    "updated_at": "2026-07-11T05:49:02+00:00"
   },
   "MC.PA": {
     "description": "LVMH",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/MC.PA.csv",
-    "last_date": "2026-07-03",
-    "rows": 6809,
-    "updated_at": "2026-07-04T06:28:27+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6814,
+    "updated_at": "2026-07-11T05:49:03+00:00"
   },
   "KER.PA": {
     "description": "케어링",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/KER.PA.csv",
-    "last_date": "2026-07-03",
-    "rows": 6809,
-    "updated_at": "2026-07-04T06:28:27+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6814,
+    "updated_at": "2026-07-11T05:49:03+00:00"
   },
   "1913.HK": {
     "description": "프라다",
     "category": "luxury",
     "source": "yfinance",
     "out_path": "luxury_daily/1913.HK.csv",
-    "last_date": "2026-07-03",
-    "rows": 4602,
-    "updated_at": "2026-07-03T07:01:56+00:00"
+    "last_date": "2026-07-10",
+    "rows": 4607,
+    "updated_at": "2026-07-11T05:49:04+00:00"
   },
   "IGV": {
     "description": "소프트웨어 ETF",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/IGV.csv",
-    "last_date": "2026-07-02",
-    "rows": 6277,
-    "updated_at": "2026-07-03T07:01:07+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6282,
+    "updated_at": "2026-07-11T05:48:15+00:00"
   },
   "NASA": {
     "description": "항공우주 ETF",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/NASA.csv",
-    "last_date": "2026-07-02",
-    "rows": 65,
-    "updated_at": "2026-07-03T07:01:07+00:00"
+    "last_date": "2026-07-10",
+    "rows": 70,
+    "updated_at": "2026-07-11T05:48:16+00:00"
   },
   "EEM": {
     "description": "이머징 마켓",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/EEM.csv",
-    "last_date": "2026-07-02",
-    "rows": 5842,
-    "updated_at": "2026-07-03T07:01:08+00:00"
+    "last_date": "2026-07-10",
+    "rows": 5847,
+    "updated_at": "2026-07-11T05:48:17+00:00"
   },
   "EFA": {
     "description": "선진국 마켓",
     "category": "us",
     "source": "yfinance",
     "out_path": "us_daily/EFA.csv",
-    "last_date": "2026-07-02",
-    "rows": 6248,
-    "updated_at": "2026-07-03T07:01:09+00:00"
+    "last_date": "2026-07-10",
+    "rows": 6253,
+    "updated_at": "2026-07-11T05:48:17+00:00"
   },
   "360140": {
     "description": "코스피200롱150숏선물",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/360140.csv",
-    "last_date": "2026-07-03",
-    "rows": 1437,
-    "updated_at": "2026-07-03T07:01:46+00:00"
+    "last_date": "2026-07-10",
+    "rows": 1442,
+    "updated_at": "2026-07-11T05:48:53+00:00"
   },
   "055550": {
     "description": "신한지주",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/055550.csv",
-    "last_date": "2026-07-03",
-    "rows": 3000,
-    "updated_at": "2026-07-03T07:01:49+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3005,
+    "updated_at": "2026-07-11T05:48:57+00:00"
   },
   "086790": {
     "description": "하나금융지주",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/086790.csv",
-    "last_date": "2026-07-03",
-    "rows": 3000,
-    "updated_at": "2026-07-03T07:01:51+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3005,
+    "updated_at": "2026-07-11T05:48:58+00:00"
   },
   "105560": {
     "description": "KB금융",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/105560.csv",
-    "last_date": "2026-07-03",
-    "rows": 3000,
-    "updated_at": "2026-07-03T07:01:52+00:00"
+    "last_date": "2026-07-10",
+    "rows": 3005,
+    "updated_at": "2026-07-11T05:49:00+00:00"
   },
   "316140": {
     "description": "우리금융지주",
     "category": "kr",
     "source": "fdr",
     "out_path": "kr_daily/316140.csv",
-    "last_date": "2026-07-03",
-    "rows": 1815,
-    "updated_at": "2026-07-03T07:01:54+00:00"
+    "last_date": "2026-07-10",
+    "rows": 1820,
+    "updated_at": "2026-07-11T05:49:01+00:00"
   }
 }
