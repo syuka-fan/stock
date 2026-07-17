@@ -3,6 +3,9 @@
 *.ipynb_checkpoints
 __pycache__/
 *.ipynb
+!ml/train_pretrain_model.ipynb
+!ml/train_posttrain_model.ipynb
+!ml/last_forecast.ipynb
 *.pyc
 *.pkl
 .codex
